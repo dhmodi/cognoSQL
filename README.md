@@ -1,0 +1,42 @@
+## SQL statements supported
+
+- [X] SELECT 
+	- [X] one column
+	- [X] multiple columns
+	- [X] all columns
+	- [X] aggregate functions 
+		- [X] count-select
+		- [X] sum-select
+		- [X] avg-select
+		- [X] min-select
+		- [X] max-select
+- [X] JOIN 
+	- [X] inner join
+	- [X] natural join
+	- [X] union join
+- [X] WHERE 
+	- [X] one condition
+	- [X] multiple conditions
+	- [X] junction
+	- [X] disjunction
+	- [X] cross-condition
+	- [X] operators
+		- [X] equal operator
+		- [X] not equal operator
+		- [X] greater-than operator
+		- [X] less-than operator
+		- [X] between operator
+	- [X] aggregate functions
+		- [X] sum in condition
+		- [X] avg in condition
+		- [X] min in condition
+		- [X] max in condition
+- [X] ORDER BY
+	- [X] ASC
+	- [ ] DESC
+- [X] GROUP BY
+- [X] alias
+- [X] multiple queries
+- [X] exception and error handling
+- [X] negation support
+- [ ] detection of values (OOV)
