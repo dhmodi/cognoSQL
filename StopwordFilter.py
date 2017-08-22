@@ -26,11 +26,11 @@ class StopwordFilter:
         return tmp_sentence
 
     def remove_accents(self, string):
-        nkfd_form = unicodedata.normalize('NFKD', unicode(string))
+        nkfd_form = unicodedata.normalize('NFKD', string)
         return u"".join([c for c in nkfd_form if not unicodedata.combining(c)])
 
     def load(self, lang):
-        with open('./stopwords/' + lang + '.txt') as f:
+        with open('./stopwords/' + lang + '.txt', encoding='utf8') as f:
             lines = f.read().split('\n')
             for word in lines:
                 stopword = self.remove_accents(word).lower()

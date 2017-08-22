@@ -6,6 +6,7 @@ import unicodedata
 from threading import Thread
 from ParsingException import ParsingException
 from Query import *
+from StopwordFilter import StopwordFilter
 
 #reload(sys)
 #sys.setdefaultencoding("utf-8")
@@ -13,6 +14,7 @@ from Query import *
 class SelectParser(Thread):
     def __init__(self, columns_of_select, tables_of_from, phrase, count_keywords, sum_keywords, average_keywords, max_keywords, min_keywords, database_dico):
         Thread.__init__(self)
+
         self.select_objects = []
         self.columns_of_select = columns_of_select
         self.tables_of_from = tables_of_from
@@ -23,6 +25,7 @@ class SelectParser(Thread):
         self.max_keywords = max_keywords
         self.min_keywords = min_keywords
         self.database_dico = database_dico
+
 
     def get_tables_of_column(self, column):
         tmp_table = []
@@ -58,6 +61,7 @@ class SelectParser(Thread):
                 select_phrases = []
                 previous_index = 0
                 for i in range(0,len(self.phrase)):
+                    # print(self.phrase[i])
                     if self.phrase[i] in self.columns_of_select:
                         select_phrases.append(self.phrase[previous_index:i+1])
                         previous_index = i+1
@@ -225,6 +229,9 @@ class FromParser(Thread):
 class WhereParser(Thread):
     def __init__(self, phrases, tables_of_from, count_keywords, sum_keywords, average_keywords, max_keywords, min_keywords, greater_keywords, less_keywords, between_keywords, negation_keywords, junction_keywords, disjunction_keywords, database_dico):
         Thread.__init__(self)
+        stopword = StopwordFilter()
+        stopword.load("english")
+        self.stop_words = stopword.get_stopword_list()
         self.where_objects = []
         self.phrases = phrases
         self.tables_of_from = tables_of_from
@@ -291,6 +298,16 @@ class WhereParser(Thread):
         else:
             return '='
 
+    def get_value(self, current_column_offset, next_column_offset):
+        interval_offset = range(current_column_offset, next_column_offset)
+        # print(interval_offset)
+        # print(self.value_of_where)
+        if(len(self.intersect(interval_offset, self.value_offset)) >= 1):
+            tempValue = self.value_of_where[0]
+            del self.value_of_where[0]
+            return tempValue
+
+
     def predict_junction(self, previous_column_offset, current_column_offset):
         interval_offset = range(previous_column_offset, current_column_offset)
         junction = 'AND'
@@ -333,38 +350,51 @@ class WhereParser(Thread):
         self.junction_keyword_offset = []
         self.disjunction_keyword_offset = []
         self.negation_keyword_offset = []
+        self.value_offset = []
+        self.value_of_where = []
+        is_column = False
 
         for phrase in self.phrases:
             for i in range(0, len(phrase)):
+                # print(phrase[i])
+                is_column = False
                 for table in self.database_dico:
                     if phrase[i] in self.database_dico[table]:
                         number_of_where_columns += 1
                         columns_of_where.append(phrase[i])
                         offset_of[phrase[i]] = i
                         column_offset.append(i)
+                        is_column = True
                         break
-                if phrase[i] in self.count_keywords: # before the column
-                    self.count_keyword_offset.append(i)
-                if phrase[i] in self.sum_keywords: # before the column
-                    self.sum_keyword_offset.append(i)
-                if phrase[i] in self.average_keywords: # before the column
-                    self.average_keyword_offset.append(i)
-                if phrase[i] in self.max_keywords: # before the column
-                    self.max_keyword_offset.append(i)
-                if phrase[i] in self.min_keywords: # before the column
-                    self.min_keyword_offset.append(i)
-                if phrase[i] in self.greater_keywords: # after the column
-                    self.greater_keyword_offset.append(i)
-                if phrase[i] in self.less_keywords: # after the column
-                    self.less_keyword_offset.append(i)
-                if phrase[i] in self.between_keywords: # after the column
-                    self.between_keyword_offset.append(i)
-                if phrase[i] in self.junction_keywords: # after the column
-                    self.junction_keyword_offset.append(i)
-                if phrase[i] in self.disjunction_keywords: # after the column
-                    self.disjunction_keyword_offset.append(i)
-                if phrase[i] in self.negation_keywords: # between the column and the equal, greater or less keyword
-                    self.negation_keyword_offset.append(i)
+                if(is_column == False):
+                    if phrase[i] in self.count_keywords: # before the column
+                        self.count_keyword_offset.append(i)
+                    elif phrase[i] in self.sum_keywords: # before the column
+                        self.sum_keyword_offset.append(i)
+                    elif phrase[i] in self.average_keywords: # before the column
+                        self.average_keyword_offset.append(i)
+                    elif phrase[i] in self.max_keywords: # before the column
+                        self.max_keyword_offset.append(i)
+                    elif phrase[i] in self.min_keywords: # before the column
+                        self.min_keyword_offset.append(i)
+                    elif phrase[i] in self.greater_keywords: # after the column
+                        self.greater_keyword_offset.append(i)
+                    elif phrase[i] in self.less_keywords: # after the column
+                        self.less_keyword_offset.append(i)
+                    elif phrase[i] in self.between_keywords: # after the column
+                        self.between_keyword_offset.append(i)
+                    elif phrase[i] in self.junction_keywords: # after the column
+                        self.junction_keyword_offset.append(i)
+                    elif phrase[i] in self.disjunction_keywords: # after the column
+                        self.disjunction_keyword_offset.append(i)
+                    elif phrase[i] in self.negation_keywords: # between the column and the equal, greater or less keyword
+                        self.negation_keyword_offset.append(i)
+                    elif phrase[i] in self.stop_words:
+                        print("Stop Words" + phrase[i])
+                    else:
+                        # print("Values" + phrase[i])
+                        self.value_offset.append(i)
+                        self.value_of_where.append(phrase[i])
 
         for table_of_from in self.tables_of_from:
             where_object = Where()
@@ -379,11 +409,11 @@ class WhereParser(Thread):
                     _next = 100 # put max integer in python here ?
                 else:
                     _next = column_offset[i+1]
-
                 junction = self.predict_junction(previous, current)
                 column = self.get_column_name_with_alias_table(columns_of_where[i], table_of_from)
                 operation_type = self.predict_operation_type(previous, current)
-                value = 'OOV' # Out Of Vocabulary: feature not implemented yet
+                value = self.get_value(current, _next)
+                #value = 'OOV' # Out Of Vocabulary: feature not implemented yet
                 operator = self.predict_operator(current, _next)
                 where_object.add_condition(junction, Condition(column, operation_type, operator, value))
             self.where_objects.append(where_object)

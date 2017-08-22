@@ -2,11 +2,11 @@ AVG: average, mean
 SUM: sum, total
 MAX: maximum, max
 MIN: minimum, min
-COUNT: number, how many, count
+COUNT: number, how many, count, How many
 JUNCTION: and
 DISJUNCTION: or
 GREATER: greater, more
-LESS: less
+LESS: less, lesser
 BETWEEN: between
 ORDER: order
 GROUP: group
